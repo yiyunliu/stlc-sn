@@ -173,7 +173,7 @@ Proof.
   - move => * /=; sfirstorder use:morphing ctrs:TRed.
 Qed.
 
-Lemma TReds_trans {n} {Γ : context n} {a b c A}
+Lemma TReds_trans {n} {Γ : context n} a b c A
   (h0 : TReds Γ a b A)
   (h1 : TReds Γ b c A) :
   TReds Γ a c A.
@@ -202,4 +202,80 @@ Lemma TReds_Abs {n} {Γ : context n} {a A B b}
   TReds Γ (Lam A a) (Lam A b) (Fun A B).
 Proof.
   induction h0; hauto lq:on ctrs:TRed, clos_refl_trans_1n.
+Qed.
+
+Definition good_subst_reds {n m}
+  (ξ0 ξ1 : fin n -> tm m)
+  (Γ : context n)
+  (Δ : context m) :=
+  forall i, TReds Δ (ξ0 i) (ξ1 i) (Γ i).
+
+Lemma preservation {n} (Γ : context n) a b A
+  (h : TRed Γ a b A) :
+  Wt Γ a A /\
+    Wt Γ b A.
+Proof.
+  induction h; last (by firstorder);
+    hauto lq:on inv:Wt ctrs:Wt use:subst_one.
+Qed.
+
+Lemma preservationL {n} (Γ : context n) a b A
+  (h : TRed Γ a b A) :
+  Wt Γ a A.
+Proof. hauto l:on use:preservation. Qed.
+
+Lemma preservationR {n} (Γ : context n) a b A
+  (h : TRed Γ a b A) :
+  Wt Γ b A.
+Proof. hauto l:on use:preservation. Qed.
+
+#[export]Hint Resolve preservationL preservationR : core.
+
+Lemma renaming_reds {n} a b A
+  (Γ : context n)
+  (h : TReds Γ a b A) :
+  forall {m} ξ (Δ : context m),
+    good_renaming ξ Γ Δ ->
+    TReds Δ (ren_tm ξ a) (ren_tm ξ b) A.
+Proof.
+  induction h; hauto lq:on ctrs:clos_refl_trans_1n use:renaming_red.
+Qed.
+
+Lemma weakening_reds {n} a b A B
+  (Γ : context n)
+  (h0 : TReds Γ a b A) :
+  TReds (B .: Γ) (ren_tm shift a) (ren_tm shift b) A.
+Proof.
+  apply renaming_reds with (Δ := B .: Γ) (ξ := shift) in h0; auto.
+Qed.
+
+Lemma good_subst_reds_ext {n m}
+  (ξ0 ξ1 : fin n -> tm m)
+  Γ Δ
+  (h : good_subst_reds ξ0 ξ1 Γ Δ)
+  (A : ty) :
+  good_subst_reds (up_tm_tm ξ0) (up_tm_tm ξ1) (A .: Γ) (A .: Δ).
+Proof.
+  hauto l:on use:weakening_reds unfold:good_subst_reds inv:option.
+Qed.
+
+#[export]Hint Resolve good_subst_reds_ext : core.
+
+Lemma reds_lifting {n} a A
+  (Γ : context n)
+  (h : Wt Γ a A) :
+  forall {m} ξ0 ξ1 (Δ : context m),
+    good_subst_reds ξ0 ξ1 Γ Δ ->
+    good_subst ξ0 Γ Δ ->
+    good_subst ξ1 Γ Δ ->
+    TReds Δ (subst_tm ξ0 a) (subst_tm ξ1 a) A.
+Proof.
+  elim : n Γ a A / h.
+  - hauto lq:on unfold:good_subst_reds ctrs:TRed, clos_refl_trans_1n.
+  - move => * /=.
+    sfirstorder use:TReds_Abs, weakening_reds.
+  - move => n Γ a A B b h0 ih0 h1 ih1 m ξ0 ξ1 Δ hξ hξ0 hξ1 /=.
+    apply TReds_trans with (b := App (subst_tm ξ0 a) (subst_tm ξ1 b)).
+    + apply : TReds_AppR; sfirstorder use:morphing.
+    + apply : TReds_AppL; sfirstorder use:morphing.
 Qed.
