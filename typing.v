@@ -279,3 +279,6 @@ Proof.
     + apply : TReds_AppR; sfirstorder use:morphing.
     + apply : TReds_AppL; sfirstorder use:morphing.
 Qed.
+
+Definition sn {n} (Γ : context n) a A :=
+  Acc (fun a b => TRed Γ b a A) a.
