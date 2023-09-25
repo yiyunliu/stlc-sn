@@ -29,6 +29,8 @@ Inductive Wt {n : nat} (Γ : context n) : tm n -> ty -> Prop :=
     (* ----------------------------- *)
     Wt Γ (App a b) B.
 
+#[export]Hint Constructors Wt : core.
+
 Definition good_renaming {n m}
   (ξ : fin n -> fin m)
   (Γ : context n)
@@ -122,4 +124,82 @@ Inductive TRed {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
   TRed (A .: Γ) a b B ->
   TRed Γ (Lam A a) (Lam A b) (Fun A B).
 
+#[export]Hint Constructors TRed : core.
+
+Lemma S_βE {n} {Γ : context n} {a b a0 A B} :
+  Wt Γ (Lam A a) (Fun A B) ->
+  Wt Γ b A ->
+  a0 = (subst_tm (b..) a) ->
+  (* ----------------------- *)
+  TRed Γ (App (Lam A a) b) a0 B.
+Proof. hauto lq:on ctrs:TRed. Qed.
+
+#[export]Hint Resolve S_βE : core.
+
 Definition TReds {n} Γ a b A := clos_refl_trans_1n (tm n) (fun a b => TRed Γ a b A) a b.
+
+Lemma renaming_red {n} a b A
+  (Γ : context n)
+  (h : TRed Γ a b A) :
+  forall {m} ξ (Δ : context m),
+    good_renaming ξ Γ Δ ->
+    TRed Δ (ren_tm ξ a) (ren_tm ξ b) A.
+Proof.
+  elim : n Γ a b A /h.
+  - move => n Γ a b A B h0 h1 m ξ Δ hξ /=.
+    apply S_βE; last by asimpl.
+    change (Lam A (ren_tm (upRen_tm_tm ξ) a)) with (ren_tm ξ (Lam A a)).
+    all : hauto l:on use:renaming.
+  - move => * /=; hauto lq:on use:renaming ctrs:TRed.
+  - move => * /=; hauto lq:on use:renaming ctrs:TRed.
+  - move => * /=;
+    hauto q:on unfold:good_renaming use:renaming ctrs:TRed inv:option.
+Qed.
+
+Lemma morphing_red {n} a b A
+  (Γ : context n)
+  (h : TRed Γ a b A) :
+  forall {m} ξ (Δ : context m),
+    good_subst ξ Γ Δ ->
+    TRed Δ (subst_tm ξ a) (subst_tm ξ b) A.
+Proof.
+  elim : n Γ a b A /h.
+  - move => n Γ a b A B h0 h1 m ξ Δ hξ /=.
+    apply S_βE; last by asimpl.
+    change (Lam A (subst_tm (up_tm_tm ξ) a)) with (subst_tm ξ (Lam A a)).
+    all : hauto l:on use:morphing.
+  - move => * /=; hauto lq:on use:morphing ctrs:TRed.
+  - move => * /=; hauto lq:on use:morphing ctrs:TRed.
+  - move => * /=; sfirstorder use:morphing ctrs:TRed.
+Qed.
+
+Lemma TReds_trans {n} {Γ : context n} {a b c A}
+  (h0 : TReds Γ a b A)
+  (h1 : TReds Γ b c A) :
+  TReds Γ a c A.
+Proof.
+  hauto lq:on use:clos_rt_rt1n_iff ctrs:clos_refl_trans unfold:TReds.
+Qed.
+
+Lemma TReds_AppL {n} {Γ : context n} {a0 a1 b A B}
+  (h0 : TReds Γ a0 a1 (Fun A B))
+  (h1 : Wt Γ b A) :
+  TReds Γ (App a0 b) (App a1 b) B.
+Proof.
+  induction h0; hauto lq:on ctrs:clos_refl_trans_1n, TRed.
+Qed.
+
+Lemma TReds_AppR {n} {Γ : context n} {a b0 b1 A B}
+  (h0 : Wt Γ a (Fun A B))
+  (h1 : TReds Γ b0 b1 A) :
+  TReds Γ (App a b0) (App a b1) B.
+Proof.
+  induction h1; hauto lq:on ctrs:clos_refl_trans_1n, TRed.
+Qed.
+
+Lemma TReds_Abs {n} {Γ : context n} {a A B b}
+  (h0 : TReds (A .: Γ) a b B) :
+  TReds Γ (Lam A a) (Lam A b) (Fun A B).
+Proof.
+  induction h0; hauto lq:on ctrs:TRed, clos_refl_trans_1n.
+Qed.
