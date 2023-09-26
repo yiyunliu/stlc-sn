@@ -98,13 +98,19 @@ Proof.
   elim : n Γ a A /h; qauto l:on db:core ctrs:Wt.
 Qed.
 
+Lemma good_subst_one {n} {Γ : context n} {a A}
+  (h : Wt Γ a A) :
+  good_subst  (a..) (A .: Γ) Γ.
+Proof. hauto unfold:good_subst l:on inv:option. Qed.
+
+#[export]Hint Resolve good_subst_one : core.
+
 Lemma subst_one {n } {Γ : context n} {a b A B}
   (h0 : Wt Γ a A)
   (h1 : Wt (A .: Γ) b B) :
   Wt Γ (subst_tm (a..) b) B.
 Proof.
   apply morphing with (Γ := (A .: Γ)); eauto.
-  hauto unfold:good_subst l:on inv:option.
 Qed.
 
 Inductive TRed {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
@@ -328,11 +334,54 @@ Proof.
   dependent induction h; qauto l:on ctrs:Acc inv:TRed.
 Qed.
 
+(* Parallel version of lemma 3.9.3 *)
+Lemma n_Unsubst {n} (Γ : context n) a A
+  {m} (Δ : context m) (ξ : fin n -> tm m)
+  (h : sn Δ (subst_tm ξ a) A) :
+  good_subst ξ Γ Δ ->
+  sn Γ a A.
+Proof.
+  move E : (subst_tm ξ a) h => a0 h.
+  move : n Γ a  ξ E.
+  induction h as [a0 h0 h1].
+  move => n Γ a ξ ? hξ; subst.
+  constructor.
+  move => a0 ha0.
+  move /(_ (subst_tm ξ a0)) in h1.
+  hauto lq:on use:morphing_red.
+Qed.
+
+Lemma n_UnsubstOne  {n } {Γ : context n} {a b A B}
+  (h0 : Wt Γ a A)
+  (h1 : sn Γ (subst_tm (a..) b) B) :
+  sn (A .: Γ) b B.
+Proof. hauto l:on use:n_Unsubst, good_subst_one db:-. Qed.
+
+(* Lemma 3.9.4 *)
+(* Note the well-typedness preconditions are necessary *)
+(* The property as stated in the paper is not true *)
 Lemma n_App {n} (Γ : context n) a b B A
   (h : sn Γ (App a b) B) :
+  Wt Γ a (Fun A B) ->
+  Wt Γ b A ->
   sn Γ a (Fun A B) /\ sn Γ b A.
 Proof.
-  dependent induction h.
+  move E : (App a b) h => a0 h.
+  move : A a b E.
+  induction h as [? h0 h1].
+  move => A a b ? hb ha; subst.
+  split.
+  - constructor.
+    move => a0 haa0.
+    have h2 : TRed Γ (App a b) (App a0 b) B by eauto.
+    eapply h1 in h2; eauto.
+    sfirstorder unfold:sn.
+  - constructor.
+    move => b0 hbb0.
+    have h2 : TRed Γ (App a b) (App a b0) B by eauto.
+    eapply h1 in h2; eauto.
+    sfirstorder unfold:sn.
+Qed.
 
-(* Lemma n_β {n} (Γ : context n) a A b B *)
-(*   (h : sn Γ ()) *)
+(* Lemma 3.10 *)
+Lemma n_Exp
