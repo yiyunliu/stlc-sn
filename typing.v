@@ -454,3 +454,13 @@ Proof.
     apply preservation_sn with (a := subst_tm (a0..) b0); auto.
     apply reds_lifting_one with (A := A); eauto.
 Qed.
+
+Inductive ne {n : nat} (Γ : context n)  : tm n -> ty -> Prop :=
+| ne_Var i :
+  ne Γ (var_tm i) (Γ i)
+| ne_App a b A B :
+  ne Γ a (Fun A B) ->
+  Wt Γ b A ->
+  ne Γ (App a b) B.
+
+(* Need to define strong head reduction *)
