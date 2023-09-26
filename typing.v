@@ -287,6 +287,16 @@ Proof.
     + apply : TReds_AppL; sfirstorder use:morphing.
 Qed.
 
+Lemma reds_lifting_one {n} a b0 b1 A B
+  (Γ : context n)
+  (h0 : Wt (A .: Γ) a B)
+  (h1 : TRed Γ b0 b1 A) :
+  TReds Γ (subst_tm (b0..) a) (subst_tm (b1..) a) B.
+Proof.
+  apply reds_lifting with (Γ := A .: Γ); eauto.
+  hauto lq:on inv:option ctrs:clos_refl_trans_1n unfold:good_subst_reds.
+Qed.
+
 Definition sn {n} (Γ : context n) a A :=
   Acc (fun a b => TRed Γ b a A) a.
 
@@ -322,6 +332,12 @@ with TRedSN {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
   Wt Γ c A ->
   TRedSN Γ (App a c) (App b c) B.
 
+Lemma red_reds {n} (Γ : context n) a b A
+  (h : TRed Γ a b A) :
+  TReds Γ a b A.
+Proof. hauto lq:on ctrs:clos_refl_trans_1n. Qed.
+
+#[export]Hint Resolve red_reds : core.
 
 Lemma n_Var {n} (Γ : context n) i : sn Γ (var_tm i) (Γ i).
 Proof. hauto q:on inv:TRed unfold:sn ctrs:Acc. Qed.
@@ -383,5 +399,58 @@ Proof.
     sfirstorder unfold:sn.
 Qed.
 
+Lemma red_subst_one {n } {Γ : context n} {a b0 b1 A B}
+  (h0 : Wt Γ a A)
+  (h1 : TRed (A .: Γ) b0 b1 B) :
+  TRed Γ (subst_tm (a..) b0) (subst_tm (a..) b1) B.
+Proof. hauto lq:on use:morphing_red db:core. Qed.
+
+Lemma Wt_unique {n} (Γ : context n) a A B
+  (h : Wt Γ a A) :
+  Wt Γ a B ->
+  A = B.
+Proof.
+  move : B.
+  elim : n Γ a A / h; hauto lq:on rew:off inv:Wt.
+Qed.
+
 (* Lemma 3.10 *)
-Lemma n_Exp
+Lemma n_Exp {n} (Γ : context n) (a : tm n) A
+  (h0 : sn Γ a A)
+  (h1 : Wt Γ a A) :
+  forall (b : tm (S n)) B,
+    sn Γ (subst_tm (a..) b) B ->
+    Wt (A .: Γ) b B ->
+    sn Γ (App (Lam A b) a) B.
+Proof.
+  move => b B h2.
+  have := h2.
+  move /(n_UnsubstOne h1) : h2.
+  move : h1 b B.
+  induction h0 as [a0 h00 h01].
+  move => h1.
+  induction 1 as [b0 h20 h21].
+  move => h2 hh.
+  constructor.
+  inversion 1 ; subst; first by auto.
+  - match goal with
+    | [h : TRed Γ (Lam _ _) _ _ |- _] => rename h into h3
+    end.
+    inversion h3; subst.
+    move /(_ ltac:(auto)) in h21.
+    apply h21; auto.
+    + enough (TRed Γ (subst_tm (a0..) b0) (subst_tm (a0..) b) B) by
+      hauto lq:on use:preservation_sn db:core.
+      sfirstorder use:red_subst_one.
+    + sfirstorder use:preservation.
+  - match goal with
+    | [h : TRed Γ a0 ?bb ?AA |- _] =>
+        rename h into h3; rename bb into a1; rename AA into A0
+    end.
+    have ? : A0 = A by hauto lq:on rew:off use:Wt_unique,preservation.
+    subst.
+    move /(_ a1 h3 ltac:(sfirstorder use:preservation)) in h01.
+    apply h01; auto; first by hauto l:on.
+    apply preservation_sn with (a := subst_tm (a0..) b0); auto.
+    apply reds_lifting_one with (A := A); eauto.
+Qed.
