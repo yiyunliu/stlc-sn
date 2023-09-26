@@ -103,7 +103,7 @@ Lemma subst_one {n } {Γ : context n} {a b A B}
   Wt Γ (subst_tm (a..) b) B.
 Proof.
   apply morphing with (Γ := (A .: Γ)); eauto.
-  hauto unfold:good_subst l:on inv:option dep:on.
+  hauto unfold:good_subst l:on inv:option.
 Qed.
 
 Inductive TRed {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
@@ -282,3 +282,35 @@ Qed.
 
 Definition sn {n} (Γ : context n) a A :=
   Acc (fun a b => TRed Γ b a A) a.
+
+Lemma preservation_sn {n}
+  (Γ : context n) a b A
+  (h0 : TReds Γ a b A) :
+  sn Γ a A ->
+  sn Γ b A.
+Proof. induction h0; hauto lq:on unfold:sn inv:Acc. Qed.
+
+Inductive SNe {n} (Γ : context n) : tm n -> ty -> Prop :=
+| N_Var i :
+  SNe Γ (var_tm i) (Γ i)
+| N_App a A B b :
+  SNe Γ a (Fun A B) ->
+  SN Γ b A ->
+  SNe Γ (App a b) B
+with SN  {n} (Γ : context n) : tm n -> ty -> Prop :=
+| N_Abs A a B :
+  SN (A .: Γ) a B ->
+  SN Γ (Lam A a) (Fun A B)
+| N_SNe a A :
+  SNe Γ a A ->
+  SN Γ a A
+| N_Exp a b A :
+  TRedSN Γ a b A ->
+  SN Γ b A ->
+  SN Γ a A
+(* It is not immediately obvious why weak expansion is enough  *)
+with TRedSN {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
+| N_β a b A B c :
+  TRedSN Γ a b (Fun A B) ->
+  Wt Γ c A ->
+  TRedSN Γ (App a c) (App b c) B.
