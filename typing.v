@@ -4,6 +4,7 @@ From Coq Require Import
   micromega.Lia Relation_Operators Operators_Properties.
 From WR Require Export syntax.
 From Coq Require Import Relations.Relation_Operators.
+From Coq Require Import Program.Equality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -314,3 +315,18 @@ with TRedSN {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
   TRedSN Γ a b (Fun A B) ->
   Wt Γ c A ->
   TRedSN Γ (App a c) (App b c) B.
+
+
+Lemma n_Var {n} (Γ : context n) i : sn Γ (var_tm i) (Γ i).
+Proof. hauto q:on inv:TRed unfold:sn ctrs:Acc. Qed.
+
+(* How does this proof work? *)
+Lemma n_Abs {n} (Γ : context n) A a B
+  (h : sn (A .: Γ) a B ) :
+  sn Γ (Lam A a) (Fun A B).
+Proof.
+  dependent induction h; qauto l:on ctrs:Acc inv:TRed.
+Qed.
+
+(* Lemma n_β {n} (Γ : context n) a A b B *)
+(*   (h : sn Γ ()) *)
