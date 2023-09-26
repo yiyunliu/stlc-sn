@@ -328,5 +328,11 @@ Proof.
   dependent induction h; qauto l:on ctrs:Acc inv:TRed.
 Qed.
 
+Lemma n_App {n} (Γ : context n) a b B A
+  (h : sn Γ (App a b) B) :
+  sn Γ a (Fun A B) /\ sn Γ b A.
+Proof.
+  dependent induction h.
+
 (* Lemma n_β {n} (Γ : context n) a A b B *)
 (*   (h : sn Γ ()) *)
