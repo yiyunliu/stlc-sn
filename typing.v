@@ -463,4 +463,64 @@ Inductive ne {n : nat} (Γ : context n)  : tm n -> ty -> Prop :=
   Wt Γ b A ->
   ne Γ (App a b) B.
 
-(* Need to define strong head reduction *)
+Lemma preservation_ne {n : nat} (Γ : context n) a A
+  (h0 : ne Γ a A) : forall b, TRed Γ a b A ->  ne Γ b A.
+Proof.
+  induction h0 as [i | ].
+  - inversion 1.
+  - inversion 1; subst; eauto.
+    + inversion h0.
+    + apply ne_App with (A := A); eauto.
+      match goal with
+      | [ h:TRed _ _ _ (Fun ?A B) |- _] =>
+          rename A into A0
+      end.
+      suff : A0 = A by hauto l:on.
+      suff : Fun A0 B = Fun A B by sfirstorder.
+      hauto lq:on rew:off use:preservation, Wt_unique.
+    + match goal with
+      | [ h:Wt _ _ (Fun ?A B) |- _] =>
+          rename A into A0
+      end.
+      have : Fun A B = Fun A0 B by hauto lq:on rew:off use:Wt_unique, preservation.
+      case => *; subst.
+      apply : ne_App; eauto.
+Qed.
+
+Lemma Wt_ne {n} (Γ : context n) a A
+  (h : ne Γ a A) : Wt Γ a A.
+Proof. induction h; sfirstorder. Qed.
+
+#[export]Hint Resolve Wt_ne : core.
+
+Lemma ne_sn_app {n : nat} (Γ : context n) a A B
+  (h0 : sn Γ a (Fun A B))
+  b
+  (h1 : sn Γ b A)
+  (h2 : ne Γ a (Fun A B)) :
+  sn Γ (App a b) B.
+Proof.
+  move : b h1 h2.
+  move E : (Fun A B) h0 => T h0.
+  move : A B E.
+  induction h0 as [a0 h00 h01].
+  move => A B ?; subst.
+  induction 1 as [b0 h10 h11].
+  move => h2.
+  constructor.
+  inversion 1; subst.
+  - inversion h2.
+  - match goal with
+    | [h : TRed _ _ _ (Fun ?AA _) |- _] => rename AA into A0
+    end.
+    have [*] : Fun A0 B = Fun A B by qauto use:Wt_unique, preservation db:core.
+    subst.
+    apply : h01; eauto.
+    + hauto l:on ctrs:Acc.
+    + sfirstorder use:preservation_ne.
+  - match goal with
+    | [h : Wt _ _ (Fun ?AA _) |- _] => rename AA into A0
+    end.
+    have [*] : Fun A0 B = Fun A B by qauto use:Wt_unique db:core.
+    sfirstorder.
+Qed.
