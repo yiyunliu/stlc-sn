@@ -346,6 +346,18 @@ with TRedSN {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
   Wt Γ b A ->
   TRedSN Γ (App a0 b) (App a1 b) B.
 
+Lemma N_βE {n} {Γ : context n} {a b a0 A B} :
+  Wt Γ (Lam A a) (Fun A B) ->
+  SN Γ b A ->
+  a0 = (subst_tm (b..) a) ->
+  (* ----------------------- *)
+  TRedSN Γ (App (Lam A a) b) a0 B.
+Proof.
+  move => h0 h1 ?; subst.
+  inversion h0; subst.
+  apply N_β; auto.
+Qed.
+
 Lemma red_reds {n} (Γ : context n) a b A
   (h : TRed Γ a b A) :
   TReds Γ a b A.
@@ -749,3 +761,53 @@ Proof.
     apply : ne_sn_app; eauto.
     sfirstorder use:SNe_soundness.
 Qed.
+
+Lemma SN_renaming_mutual : forall {n} (Γ : context n),
+    (forall a A, SN Γ a A ->
+            forall m (Δ : context m) ξ, good_renaming ξ Γ Δ ->
+            SN Δ (ren_tm ξ a) A) /\
+  (forall a A, SNe Γ a A ->
+          forall m (Δ : context m) ξ, good_renaming ξ Γ Δ ->
+          SNe Δ (ren_tm ξ a) A) /\
+  (forall a b A, TRedSN Γ a b A ->
+      forall m (Δ : context m) ξ, good_renaming ξ Γ Δ ->
+          TRedSN Δ (ren_tm ξ a) (ren_tm ξ b) A).
+Proof.
+  apply SN_mutual; eauto; try tauto.
+  - hauto q:on use:renaming unfold:good_renaming ctrs:SN inv:option.
+  - hauto q:on use:renaming unfold:good_renaming ctrs:SN inv:option.
+  - hauto q:on use:renaming unfold:good_renaming ctrs:SN inv:option.
+  - hauto q:on use:renaming unfold:good_renaming ctrs:SNe, SN inv:option.
+  - hauto q:on use:renaming unfold:good_renaming ctrs:SNe, SN inv:option.
+  - move => *.
+    simpl.
+    apply N_βE; last by asimpl.
+    + hauto q:on ctrs:Wt unfold:good_renaming use:renaming inv:option.
+    + sfirstorder.
+  - move => *.
+    hauto q:on ctrs:Wt, TRedSN unfold:good_renaming use:renaming inv:option.
+Qed.
+
+Lemma SN_anti_renaming_mutual : forall {n} (Γ : context n),
+    (forall a A, SN Γ a A ->
+            forall m (Δ : context m) ξ, good_renaming ξ Δ Γ ->
+            forall b, a = ren_tm ξ b ->
+            SN Δ b A) /\
+  (forall a A, SNe Γ a A ->
+          forall m (Δ : context m) ξ, good_renaming ξ Δ Γ ->
+          forall b, a = ren_tm ξ b ->
+          SNe Δ b A) /\
+  (forall a b A, TRedSN Γ a b A ->
+      forall m (Δ : context m) ξ, good_renaming ξ Δ Γ ->
+          forall a0 b0, a = ren_tm ξ a0 -> b = ren_tm ξ b0 ->
+          TRedSN Δ a0 b0 A).
+Proof.
+  apply SN_mutual; eauto; try tauto.
+  - move => n Γ A a B h0 ih0 m Δ ξ hξ b eq.
+    destruct b; simpl in eq; try congruence.
+    apply eq_sym in eq.
+    case : eq => *; subst.
+    constructor.
+    apply ih0 with (ξ := upRen_tm_tm ξ); eauto.
+    hauto q:on inv:option unfold:good_renaming.
+Admitted.
