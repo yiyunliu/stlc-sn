@@ -680,3 +680,25 @@ Proof.
       apply : TReds_AppR; eauto.
       sfirstorder use:redsn_Wt, red_reds, TReds_AppR.
 Qed.
+
+(* Analogous to the expansion rule of RedSN *)
+Lemma backward_clos_sn2 {n} (Γ : context n) a0 a1 A :
+  redsn Γ a0 a1 A ->
+  Wt Γ a0 A ->
+  sn Γ a1 A ->
+  sn Γ a0 A.
+Proof.
+  induction 1 as [a0 b A B h0 h1 | a0 a1 b A B h0 h1 h2].
+  - qauto l:on inv:Wt use:preservation, n_Exp.
+  - move => h3 h4.
+    inversion h3; subst.
+    match goal with
+    | [h : Wt _ _ (Fun ?AA _) |- _] =>
+        rename AA into A0
+    end.
+    have [*] : (Fun A0 B = Fun A B) by hauto lq:on rew:off use:Wt_unique. subst.
+    have h4dup := h4.
+    apply n_App with (A := A) in h4; try tauto; last by sfirstorder use:redsn_Wt.
+    case : h4 => h4 h5.
+    apply : backward_clos_sn1; eauto.
+Qed.
