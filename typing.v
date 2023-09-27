@@ -180,6 +180,16 @@ Proof.
   - move => * /=; sfirstorder use:morphing ctrs:TRed.
 Qed.
 
+Lemma morphing_reds {n} a b A
+  (Γ : context n)
+  (h : TReds Γ a b A) :
+  forall {m} ξ (Δ : context m),
+    good_subst ξ Γ Δ ->
+    TReds Δ (subst_tm ξ a) (subst_tm ξ b) A.
+Proof.
+  induction h; qauto l:on use:morphing_red ctrs:clos_refl_trans_1n.
+Qed.
+
 Lemma TReds_trans {n} {Γ : context n} a b c A
   (h0 : TReds Γ a b A)
   (h1 : TReds Γ b c A) :
@@ -409,6 +419,12 @@ Lemma red_subst_one {n } {Γ : context n} {a b0 b1 A B}
   TRed Γ (subst_tm (a..) b0) (subst_tm (a..) b1) B.
 Proof. hauto lq:on use:morphing_red db:core. Qed.
 
+Lemma reds_subst_one {n } {Γ : context n} {a b0 b1 A B}
+  (h0 : Wt Γ a A)
+  (h1 : TReds (A .: Γ) b0 b1 B) :
+  TReds Γ (subst_tm (a..) b0) (subst_tm (a..) b1) B.
+Proof. hauto lq:on use:morphing_reds db:core. Qed.
+
 Lemma Wt_unique {n} (Γ : context n) a A B
   (h : Wt Γ a A) :
   Wt Γ a B ->
@@ -532,16 +548,102 @@ Qed.
 Inductive redsn {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
 | sn_β a b A B :
   Wt (A .: Γ) a B ->
-  SN Γ b A ->
+  sn Γ b A ->
   redsn Γ (App (Lam A a) b) (subst_tm (b..) a) B
 | sn_AppL a0 a1 b A B :
   redsn Γ a0 a1 (Fun A B) ->
   Wt Γ b A ->
   redsn Γ (App a0 b) (App a1 b) B.
 
+Lemma redsn_inj {n}  (Γ : context n) a b A :
+  Wt Γ a A ->
+  redsn Γ a b A ->
+  TRed Γ a b A.
+Proof.
+  move => h0 h1.
+  move : h0.
+  induction h1.
+  - hauto lq:on ctrs:TRed, Wt inv:Wt use:Wt_unique.
+  - inversion 1; subst.
+    match goal with
+    | [h : Wt _ _ (Fun ?AA _) |- _] => rename AA into A0
+    end.
+    have ? : A = A0 by sfirstorder use:Wt_unique.
+    sfirstorder.
+Qed.
+
+#[export]Hint Constructors redsn : core.
+
+Derive Inversion tred_inv with (forall n (Γ : context n) a b A, TRed Γ a b A) Sort Prop.
+
 Lemma sn_confluence {n} (Γ : context n) a b0 A
   (h : redsn Γ a b0 A) : forall b1,
     TRed Γ a b1 A ->
     b0 = b1 \/ exists c, redsn Γ b1 c A /\ TReds Γ b0 c A.
-  induction h.
+  induction h as [a b A B h h0| a a0 b A B h h0 h1].
+  - move => b1.
+    inversion 1; subst; auto.
+    + match goal with
+      | [h : TRed Γ (Lam _ _) ?aa (Fun ?AA _) |- _] =>
+          inversion h ; subst
+      end.
+      right.
+      match goal with
+      | [h : TRed (_ .: _) _ ?b0 _ |- _] =>
+          rename b0 into a0
+      end.
+      exists (subst_tm (b..) a0).
+      split; eauto.
+      eauto using red_subst_one.
+    + right.
+      match goal with
+      | [h : TRed _ b ?bb ?AA |- _] =>
+          rename bb into b0;
+          rename AA into A0
+      end.
+      exists (subst_tm (b0..) a).
+      have ? : A0 = A by qauto l:on inv:Wt,tm.
+      subst.
+      split; eauto.
+      * hauto lq:on use:preservation_sn,sn_β db:core.
+      * eauto using reds_lifting_one.
+  - inversion 1; subst; auto.
+    + hauto lq:on inv:redsn.
+    + match goal with
+      | [h : TRed Γ a ?aa (Fun ?AA _) |- _] =>
+          rename aa into a1;
+          rename AA into A0
+      end.
+      have ? : A0 = A by sfirstorder use:Wt_unique.
+      subst.
+      case /(_ a1 ltac:(assumption)) : h0 => h0; first by (subst; auto).
+      right.
+      strivial use: @sn_AppL, @TReds_AppL.
+    + match goal with
+      | [h : Wt _ _ (Fun ?AA _) |- _] =>
+          rename AA into A0
+      end.
+      have ? : (A0 = A) by hauto lq:on rew:off use:Wt_unique, preservation.
+      hauto lq:on rew:off ctrs:redsn,TRed use:redsn_inj, preservation, red_reds.
+Qed.
+
+Lemma backward_clos_sn_1 {n} (Γ : context n) a A
+  (h : sn Γ a A) :
+  forall b B,
+    sn Γ b (Fun A B) ->
+    forall b0,
+      redsn Γ b b0 (Fun A B) ->
+      sn Γ (App b0 a) B ->
+      sn Γ (App b a) B.
+Proof.
+  induction h as [a0 h0 ih0].
+  move => b B.
+  move E : (Fun A B) => T h1.
+  induction h1 as [b0 h1 ih1]; subst.
+  move => b1 hb0b1 h2.
+  constructor.
+  inversion 1; subst; eauto.
+  - qauto l:on ctrs:Acc inv:TRed,Wt,redsn.
+  - admit.
+  - admit.
 Admitted.
