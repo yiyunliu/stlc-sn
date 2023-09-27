@@ -483,6 +483,8 @@ Inductive ne {n : nat} (Γ : context n)  : tm n -> ty -> Prop :=
   Wt Γ b A ->
   ne Γ (App a b) B.
 
+#[export]Hint Constructors ne : core.
+
 Lemma preservation_ne {n : nat} (Γ : context n) a A
   (h0 : ne Γ a A) : forall b, TRed Γ a b A ->  ne Γ b A.
 Proof.
@@ -701,4 +703,49 @@ Proof.
     apply n_App with (A := A) in h4; try tauto; last by sfirstorder use:redsn_Wt.
     case : h4 => h4 h5.
     apply : backward_clos_sn1; eauto.
+Qed.
+
+Scheme SN_ind' := Induction for SN Sort Prop
+   with SNe_ind' := Induction for SNe Sort Prop
+   with TRedSN_ind' := Induction for TRedSN Sort Prop.
+Combined Scheme SN_mutual from SN_ind', SNe_ind', TRedSN_ind'.
+
+Check SN_mutual.
+
+Lemma SN_Wt_mutual :  forall {n} (Γ : context n),
+  (forall a A, SN Γ a A -> Wt Γ a A) /\
+  (forall a A, SNe Γ a A -> Wt Γ a A) /\
+  (forall a b A, TRedSN Γ a b A -> Wt Γ a A /\ Wt Γ b A).
+Proof.
+  apply SN_mutual; eauto; try tauto.
+  - move => * [:wt].
+    split; first by abstract : wt; hauto lq:on ctrs:Wt.
+    hauto lq:on ctrs:TRed,Wt use:preservationR.
+  - sfirstorder.
+Qed.
+
+Lemma SNe_soundness {n} (Γ : context n) a A :
+  SNe Γ a A ->
+  ne Γ a A.
+Proof.
+  induction 1.
+  - auto.
+  - qauto l:on use:SN_Wt_mutual, ne_App.
+Qed.
+
+Lemma SN_sn :  forall {n} (Γ : context n),
+  (forall a A, SN Γ a A -> sn Γ a A) /\
+  (forall a A, SNe Γ a A -> sn Γ a A) /\
+  (forall a b A, TRedSN Γ a b A -> redsn Γ a b A).
+Proof.
+  apply SN_mutual; eauto; try tauto.
+  - move => n Γ A a B *.
+    by apply n_Abs.
+  - move => n Γ a b A *.
+    apply backward_clos_sn2 with (a1 := b); eauto.
+    hauto l:on use:SN_Wt_mutual.
+  - eauto using n_Var.
+  - move => n Γ a A B b h0 ih0 h1 ih1.
+    apply : ne_sn_app; eauto.
+    sfirstorder use:SNe_soundness.
 Qed.
