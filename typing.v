@@ -327,10 +327,14 @@ with SN  {n} (Γ : context n) : tm n -> ty -> Prop :=
   SN Γ a A
 (* It is not immediately obvious why weak expansion is enough  *)
 with TRedSN {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
-| N_β a b A B c :
-  TRedSN Γ a b (Fun A B) ->
-  Wt Γ c A ->
-  TRedSN Γ (App a c) (App b c) B.
+| N_β a b A B :
+  Wt (A .: Γ) a B ->
+  SN Γ b A ->
+  TRedSN Γ (App (Lam A a) b) (subst_tm (b..) a) B
+| N_AppL a0 a1 b A B :
+  TRedSN Γ a0 a1 (Fun A B) ->
+  Wt Γ b A ->
+  TRedSN Γ (App a0 b) (App a1 b) B.
 
 Lemma red_reds {n} (Γ : context n) a b A
   (h : TRed Γ a b A) :
@@ -524,3 +528,20 @@ Proof.
     have [*] : Fun A0 B = Fun A B by qauto use:Wt_unique db:core.
     sfirstorder.
 Qed.
+
+Inductive redsn {n} (Γ : context n) : tm n -> tm n -> ty -> Prop :=
+| sn_β a b A B :
+  Wt (A .: Γ) a B ->
+  SN Γ b A ->
+  redsn Γ (App (Lam A a) b) (subst_tm (b..) a) B
+| sn_AppL a0 a1 b A B :
+  redsn Γ a0 a1 (Fun A B) ->
+  Wt Γ b A ->
+  redsn Γ (App a0 b) (App a1 b) B.
+
+Lemma sn_confluence {n} (Γ : context n) a b0 A
+  (h : redsn Γ a b0 A) : forall b1,
+    TRed Γ a b1 A ->
+    b0 = b1 \/ exists c, redsn Γ b1 c A /\ TReds Γ b0 c A.
+  induction h.
+Admitted.
