@@ -572,6 +572,13 @@ Proof.
     sfirstorder.
 Qed.
 
+Lemma redsn_Wt {n} (Γ : context n) a b A :
+  Wt Γ a A ->
+  redsn Γ a b A ->
+  Wt Γ b A.
+Proof. hauto lq:on use:redsn_inj, preservation. Qed.
+
+
 #[export]Hint Constructors redsn : core.
 
 Derive Inversion tred_inv with (forall n (Γ : context n) a b A, TRed Γ a b A) Sort Prop.
@@ -627,23 +634,49 @@ Lemma sn_confluence {n} (Γ : context n) a b0 A
       hauto lq:on rew:off ctrs:redsn,TRed use:redsn_inj, preservation, red_reds.
 Qed.
 
-Lemma backward_clos_sn_1 {n} (Γ : context n) a A
-  (h : sn Γ a A) :
+Lemma backward_clos_sn1 {n} (Γ : context n) a A
+  (h : sn Γ a A)
+  (ha : Wt Γ a A) :
   forall b B,
     sn Γ b (Fun A B) ->
+    Wt Γ b (Fun A B) ->
     forall b0,
       redsn Γ b b0 (Fun A B) ->
       sn Γ (App b0 a) B ->
       sn Γ (App b a) B.
 Proof.
+  move : ha.
   induction h as [a0 h0 ih0].
-  move => b B.
+  move => ha b B.
   move E : (Fun A B) => T h1.
   induction h1 as [b0 h1 ih1]; subst.
-  move => b1 hb0b1 h2.
+  move => hb0 b1 hb0b1 h2.
   constructor.
   inversion 1; subst; eauto.
   - qauto l:on ctrs:Acc inv:TRed,Wt,redsn.
-  - admit.
-  - admit.
-Admitted.
+  - lazymatch goal with
+    | [h : TRed _ _ ?aa (Fun ?AA _) |- _] =>
+        rename aa into b2;
+        rename AA into A0;
+        rename h into h3
+    end.
+    have [*] : (Fun A0 B) = Fun A B by hauto lq:on rew:off use:Wt_unique, preservation.
+    subst.
+    have h4 := h3.
+    apply sn_confluence with (b0 := b1) in h3; auto.
+    case : h3 => h3; first by (subst; auto).
+    case : h3 => c [h5 h6].
+    apply ih1 with (b0 := c); eauto.
+    hauto l:on use:preservation_sn, TReds_AppL.
+  - lazymatch goal with
+    | [h : Wt _ _ (Fun ?AA _) |- _] =>
+        rename AA into A0
+    end.
+    have [*] : (Fun A0 B) = Fun A B by hauto lq:on rew:off use:Wt_unique.
+    subst.
+    apply ih0 with (b0 := b1); eauto.
+    + hauto l:on use:preservation.
+    + apply preservation_sn with (a := App b1 a0); eauto.
+      apply : TReds_AppR; eauto.
+      sfirstorder use:redsn_Wt, red_reds, TReds_AppR.
+Qed.
