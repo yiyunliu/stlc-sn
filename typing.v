@@ -810,4 +810,7 @@ Proof.
     constructor.
     apply ih0 with (ξ := upRen_tm_tm ξ); eauto.
     hauto q:on inv:option unfold:good_renaming.
+  - hauto lq:on ctrs:SN unfold:good_renaming inv:option.
+  - move => n Γ a b A h0 ih0 h1 ih1 m Δ ξ hξ b0 ?; subst.
+
 Admitted.
