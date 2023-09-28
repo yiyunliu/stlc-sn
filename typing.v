@@ -802,7 +802,7 @@ Lemma SN_anti_renaming_mutual : forall {n} (Γ : context n),
           forall a0 b0, a = ren_tm ξ a0 -> b = ren_tm ξ b0 ->
           TRedSN Δ a0 b0 A).
 Proof.
-  apply SN_mutual; eauto; try tauto.
+  apply SN_mutual.
   - move => n Γ A a B h0 ih0 m Δ ξ hξ b eq.
     destruct b; simpl in eq; try congruence.
     apply eq_sym in eq.
