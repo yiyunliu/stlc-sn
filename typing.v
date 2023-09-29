@@ -943,6 +943,15 @@ Proof. sfirstorder use:SemWt_Wt. Qed.
 
 #[export]Hint Resolve good_sem_subst_good_subst : core.
 
+Lemma renaming_Sem {n} (Γ : context n) a A :
+  SemWt Γ a A ->
+  forall m (Δ : context m) ξ,
+    good_renaming ξ Γ Δ ->
+    SemWt Δ (ren_tm ξ a) A.
+Proof.
+  case : A n Γ a.
+Admitted.
+
 Lemma fundamental_lemma {n} (Γ : context n) a A
   (h : Wt Γ a A) :
   forall {m} (Δ : context m) ξ,
@@ -951,9 +960,7 @@ Lemma fundamental_lemma {n} (Γ : context n) a A
 Proof.
   elim : n Γ a A / h.
   - sfirstorder.
-  - move => n Γ A a B h0 ih0 m Δ ξ hξ.
-    simpl.
-    move => p Δ0 ξ0 hξ0 b h1 h2.
+  - move => /= n Γ A a B h0 ih0 m Δ ξ hξ p Δ0 ξ0 hξ0 b h1 h2.
     substify.
     move /(_ p Δ0 (up_tm_tm ξ >> ren_tm (upRen_tm_tm ξ0) >> subst_tm (b..))) in ih0.
     apply : CR2.
@@ -969,7 +976,12 @@ Proof.
     + asimpl in ih0.
       apply ih0.
       renamify.
-      admit.
+      have ? : good_sem_subst (ξ >> ren_tm ξ0) Γ Δ0 by admit.
+      rewrite /good_sem_subst.
+      destruct i; auto.
+      simpl.
+      asimpl.
+      sfirstorder.
   - move => n Γ a A B b h0 ih0 h1 ih1 m Δ ξ hξ.
     simpl.
     move /(_ m Δ ξ hξ) in ih0.
