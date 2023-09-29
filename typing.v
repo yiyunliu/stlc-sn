@@ -915,3 +915,59 @@ Proof.
     + hauto q:on ctrs:SNe use:SN_renaming_mutual, renaming.
   - hauto lq:on ctrs:SN, SNe, TRedSN.
 Qed.
+
+Lemma CR1 {n} (Γ : context n) a A : SemWt Γ a A -> SN Γ a A.
+Proof. hauto l:on use:CR123. Qed.
+
+Lemma CR2 {n} (Γ : context n) a A b : TRedSN Γ a b A -> SemWt Γ b A -> SemWt Γ a A.
+Proof. hauto l:on use:CR123. Qed.
+
+Lemma CR3 {n} (Γ : context n) a A : SNe Γ a A -> SemWt Γ a A.
+Proof. hauto l:on use:CR123. Qed.
+
+Definition good_sem_subst {n m}
+  (ξ : fin n -> tm m)
+  (Γ : context n)
+  (Δ : context m) :=
+  forall i, SemWt Δ (ξ i) (Γ i).
+
+Lemma SemWt_Wt {n} (Γ : context n) a A : SemWt Γ a A -> Wt Γ a A.
+Proof. hauto lq: on rew: off use: CR1, SN_Wt_mutual. Qed.
+
+Lemma good_sem_subst_good_subst {n m}
+  (ξ : fin n -> tm m)
+  (Γ : context n)
+  (Δ : context m) :
+  good_sem_subst ξ Γ Δ -> good_subst ξ Γ Δ.
+Proof. sfirstorder use:SemWt_Wt. Qed.
+
+#[export]Hint Resolve good_sem_subst_good_subst : core.
+
+Lemma fundamental_lemma {n} (Γ : context n) a A
+  (h : Wt Γ a A) :
+  forall {m} (Δ : context m) ξ,
+    good_sem_subst ξ Γ Δ ->
+    SemWt Δ (subst_tm ξ a) A.
+Proof.
+  elim : n Γ a A / h.
+  - sfirstorder.
+  - move => n Γ A a B h0 ih0 m Δ ξ hξ.
+    simpl.
+    move => p Δ0 ξ0 hξ0 b h1 h2.
+    substify.
+    move /(_ p Δ0 (up_tm_tm ξ >> ren_tm (upRen_tm_tm ξ0) >> subst_tm (b..))) in ih0.
+    apply : CR2.
+    apply N_β; eauto.
+    + have h3 : Wt (A .: Δ) (subst_tm (up_tm_tm ξ) a) B
+        by apply morphing with (Γ := A .: Γ); eauto.
+      (* Write a lemma for this property *)
+      suff : Wt (A .: Δ0) (ren_tm (upRen_tm_tm ξ0) (subst_tm (up_tm_tm ξ) a)) B
+        by renamify.
+      apply renaming with (Γ := A .: Δ); eauto.
+      hauto lq: on rew: off inv: option unfold: good_renaming.
+    + by apply : CR1.
+    + asimpl in ih0.
+      apply ih0.
+      renamify.
+      admit.
+  - best.
