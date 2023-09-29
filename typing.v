@@ -970,4 +970,25 @@ Proof.
       apply ih0.
       renamify.
       admit.
-  - best.
+  - move => n Γ a A B b h0 ih0 h1 ih1 m Δ ξ hξ.
+    simpl.
+    move /(_ m Δ ξ hξ) in ih0.
+    move /(_ m Δ ξ hξ) in ih1.
+    simpl in ih0.
+    move /(_ m Δ ids ltac:(sfirstorder) (subst_tm ξ b) ih1 ltac:(sfirstorder use:SemWt_Wt)) in ih0.
+    by asimpl in ih0.
+Admitted.
+
+Lemma fundamental_lemma_id {n} (Γ : context n) a A
+  (h : Wt Γ a A) :
+  SemWt Γ a A.
+Proof.
+  enough (h1 : SemWt Γ (subst_tm ids a) A).
+  by asimpl in h1.
+  apply fundamental_lemma with (Γ := Γ); auto.
+  rewrite /good_sem_subst.
+  hauto lq:on use:CR3 ctrs:SNe.
+Qed.
+
+Lemma normalization {n} (Γ : context n) a A : Wt Γ a A -> sn Γ a A.
+Proof. hauto lq:on use:SN_sn, fundamental_lemma_id, CR1. Qed.
