@@ -799,7 +799,7 @@ Lemma SN_anti_renaming_mutual : forall {n} (Γ : context n),
           SNe Δ b A) /\
   (forall a b A, TRedSN Γ a b A ->
       forall m (Δ : context m) ξ, good_renaming ξ Δ Γ ->
-          forall a0 b0, a = ren_tm ξ a0 -> b = ren_tm ξ b0 ->
+          forall a0, a = ren_tm ξ a0 -> exists b0, b = ren_tm ξ b0 /\
           TRedSN Δ a0 b0 A).
 Proof.
   apply SN_mutual.
@@ -810,11 +810,36 @@ Proof.
     constructor.
     apply ih0 with (ξ := upRen_tm_tm ξ); eauto.
     hauto q:on inv:option unfold:good_renaming.
-  - hauto lq:on ctrs:SN unfold:good_renaming inv:option.
-  - move => n Γ a b A h0 ih0 h1 ih1 m Δ ξ hξ b0 ?; subst.
-
-Admitted.
-
+  - hauto q:on ctrs:SN unfold:good_renaming.
+  - hauto q:on ctrs:SN unfold:good_renaming.
+  - hauto q:on inv:tm ctrs:SNe unfold:good_renaming.
+  - hauto q:on ctrs:SNe unfold:good_renaming inv:tm.
+  - move => n Γ a b A B h0 h1 ih1 m Δ ξ hξ.
+    case => //.
+    move => c b0 hh.
+    apply eq_sym in hh.
+    simpl in hh.
+    case : hh => h2 h3; subst.
+    case : c h2 => //.
+    move => ? a0.
+    case => *; subst.
+    move /(_ m Δ ξ hξ b0 eq_refl) in ih1.
+    exists (subst_tm (b0..) a0).
+    split.
+    + by asimpl.
+    + apply N_β; auto.
+      eapply anti_renaming with (ξ := (upRen_tm_tm ξ)); eauto.
+      hauto lq:on rew:off inv:option unfold:good_renaming.
+  - move => n Γ a0 a1 b A B h0 ih0 h1 m Δ ξ hξ.
+    case => // a2 b1.
+    simpl.
+    case => *; subst.
+    case /(_ m Δ ξ hξ a2 eq_refl)  : ih0 => a3 [? h2]; subst.
+    exists (App a3 b1).
+    split; auto.
+    apply : N_AppL; eauto.
+    sfirstorder use:anti_renaming.
+Qed.
 
 Lemma SN_anti_renaming :
 forall {n} (Γ : context n),
