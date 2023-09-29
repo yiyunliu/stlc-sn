@@ -1,5 +1,5 @@
 From Coq Require Import ssreflect ssrfun ssrbool.
-From Hammer Require Import Tactics Hammer.
+From Hammer Require Import Tactics.
 From Coq Require Import
   micromega.Lia Relation_Operators Operators_Properties.
 From WR Require Export syntax.
@@ -814,3 +814,35 @@ Proof.
   - move => n Γ a b A h0 ih0 h1 ih1 m Δ ξ hξ b0 ?; subst.
 
 Admitted.
+
+
+Lemma SN_anti_renaming :
+forall {n} (Γ : context n),
+  forall m (Δ : context m) ξ, good_renaming ξ Δ Γ ->
+    (forall b A, SN Γ (ren_tm ξ b) A ->
+            SN Δ b A).
+Proof. move => *. hauto l:on use:SN_anti_renaming_mutual. Qed.
+
+Lemma ext_SN : forall n i (Γ : context n) a B,
+    SN Γ (App a (var_tm i)) B ->
+    SN Γ a (Fun (Γ i) B).
+Proof.
+  move => n i Γ a B.
+  move Ea : (App a (var_tm i)) => a0 h.
+  move : a i Ea.
+  elim : n Γ a0 B / h => //.
+  - hauto lq:on rew:off inv:SNe,SN,TRedSN ctrs:SN.
+  - move => n Γ a b A h0 h1 ih1 a0 i ?; subst.
+    inversion h0; subst.
+    + lazymatch goal with
+      | [h : Wt (?AA .: _) _ _ |- _] =>
+          (have ? : AA = Γ i by hauto lq:on inv:SN, SNe, TRedSN);
+          subst
+      end.
+      apply N_Abs.
+      eapply SN_anti_renaming with (Γ := Γ) (ξ := i..); eauto.
+      * hauto lq:on unfold:good_renaming inv:option.
+      * substify.
+        by asimpl.
+    + hauto lq:on rew:off inv:Wt ctrs:SN.
+Qed.
