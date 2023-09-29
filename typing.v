@@ -848,6 +848,15 @@ forall {n} (Γ : context n),
             SN Δ b A).
 Proof. move => *. hauto l:on use:SN_anti_renaming_mutual. Qed.
 
+Lemma SN_anti_weakening :
+  forall {n} (Γ : context n) b A B,
+    SN (A .: Γ) (ren_tm shift b) B ->
+    SN Γ b B.
+Proof.
+  move => n Γ b A B h0.
+  eapply SN_anti_renaming with (Γ := A .: Γ) (ξ := shift); auto.
+Qed.
+
 Lemma ext_SN : forall n i (Γ : context n) a B,
     SN Γ (App a (var_tm i)) B ->
     SN Γ a (Fun (Γ i) B).
@@ -870,4 +879,39 @@ Proof.
       * substify.
         by asimpl.
     + hauto lq:on rew:off inv:Wt ctrs:SN.
+Qed.
+
+Fixpoint SemWt {n} (Γ : context n) (a : tm n) (A : ty) : Prop :=
+  match A with
+  | I => SN Γ a I
+  | Fun A B => forall m (Δ : context m) ξ,
+      good_renaming ξ Γ Δ ->
+      forall b, SemWt Δ b A ->
+           Wt Δ b A ->
+           SemWt Δ (App (ren_tm ξ a) b) B
+  end.
+
+Lemma CR123 {n} (Γ : context n) a A :
+  (SemWt Γ a A -> SN Γ a A) /\
+    (forall b, TRedSN Γ a b A -> SemWt Γ b A -> SemWt Γ a A) /\
+    (SNe Γ a A -> SemWt Γ a A).
+Proof.
+  elim : A n Γ a.
+  - move => // A ihA B ihB n Γ a.
+    repeat split.
+    + move => /= h.
+      apply SN_anti_weakening with (A := A).
+      change (Fun A B) with (Fun ((A .: Γ) var_zero) B).
+      (* Need CR3 to finish off the proof *)
+      hauto l:on ctrs:SNe, Wt use:ext_SN db:core.
+    + move => b h0 h1.
+      simpl.
+      move => m Δ ξ hξ b0 hb0 hWt.
+      move /(_ m Δ (App (ren_tm ξ a) b0)) in ihB.
+      move : ihB; intros (ihB0 & ihB1 & ihB2).
+      apply ihB1 with (b := (App (ren_tm ξ b) b0)); eauto.
+      apply N_AppL with (A := A); eauto.
+      hauto l:on use:SN_renaming_mutual.
+    + hauto q:on ctrs:SNe use:SN_renaming_mutual, renaming.
+  - hauto lq:on ctrs:SN, SNe, TRedSN.
 Qed.
