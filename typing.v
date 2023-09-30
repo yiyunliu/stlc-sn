@@ -949,8 +949,15 @@ Lemma renaming_Sem {n} (Γ : context n) a A :
     good_renaming ξ Γ Δ ->
     SemWt Δ (ren_tm ξ a) A.
 Proof.
-  case : A n Γ a.
+  elim : A n Γ a.
 Admitted.
+
+Lemma good_sem_subst_renaming {n m p} (Γ : context n) (Δ : context m) (Σ : context p)
+  ξ0 ξ1 :
+  good_sem_subst ξ0 Γ Δ ->
+  good_renaming ξ1 Δ Σ ->
+  good_sem_subst (ξ0 >> ren_tm ξ1) Γ Σ.
+Proof. sfirstorder use:renaming_Sem. Qed.
 
 Lemma fundamental_lemma {n} (Γ : context n) a A
   (h : Wt Γ a A) :
@@ -976,7 +983,7 @@ Proof.
     + asimpl in ih0.
       apply ih0.
       renamify.
-      have ? : good_sem_subst (ξ >> ren_tm ξ0) Γ Δ0 by admit.
+      have ? : good_sem_subst (ξ >> ren_tm ξ0) Γ Δ0 by hauto l:on use:good_sem_subst_renaming.
       rewrite /good_sem_subst.
       destruct i; auto.
       simpl.
@@ -989,7 +996,7 @@ Proof.
     simpl in ih0.
     move /(_ m Δ ids ltac:(sfirstorder) (subst_tm ξ b) ih1 ltac:(sfirstorder use:SemWt_Wt)) in ih0.
     by asimpl in ih0.
-Admitted.
+Qed.
 
 Lemma fundamental_lemma_id {n} (Γ : context n) a A
   (h : Wt Γ a A) :
