@@ -1,0 +1,38 @@
+* Strong normalization of STLC
+This repository contains an extrinsically typed and well-scoped Coq mechanization of the strong
+normalization proof of STLC described in the paper
+[[https://poplmark-reloaded.github.io/pdf/main.pdf][POPLMark Reloaded: Mechanizing Proofs by Logical
+Relations]]. Substitution in this mechanization is handled by Autosubst2.
+
+The paper already includes two variants of mechanized Coq proofs: one
+is intrinsically typed and the other extrinsically typed but
+well-scoped. The latter variant is very similar to the mechanization
+in this repo. However, their definition of the accessibility relation
+=sn= and many other auxiliary definitions are untyped rather than type
+directed. As a result, it is difficult to extend their mechanization
+to handle eta rules for unit types.
+
+The mechanization presented here is almost a line-by-line
+transliteration of the proof presented in the text. Lemmas related to
+renaming and substitution are rephrased in a parallel form, which is more
+convenient to work with when using the full DeBruijn representation of
+Autosubst2.
+
+Interestingly, the development of the proof reveals some minor errors
+in the text:
+- Lemma 3.9.4 doesn't hold. If the function $M$ is ill-typed,
+  then the application form $M$ $N$ can't take a type-directed step
+  because it is also ill-typed. There is nothing we can say about
+  whether the argument $N$ is strongly normalizing or not. The lemma
+  is true only when we add additional well-typedness preconditions.
+- A remark says Lemma 3.10 can be rephrased in terms of simultaneous
+  substitution, though that seems impossible because the conclusion
+  requires closing over the term with a lambda.
+
+
+* Lines of code
+The file [[file:typing.v][typing.v]] containing the judgments and normalization proofs
+has 1028 lines in total, whereas the Coq development from the paper
+requries only 446 lines of code. It is unclear whether that's due to
+my lack of specialized automation tactics or the use of type-directed
+judgments.
