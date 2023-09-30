@@ -4,7 +4,6 @@ From Coq Require Import
   micromega.Lia Relation_Operators Operators_Properties.
 From WR Require Export syntax.
 From Coq Require Import Relations.Relation_Operators.
-From Coq Require Import Program.Equality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -373,7 +372,9 @@ Lemma n_Abs {n} (Γ : context n) A a B
   (h : sn (A .: Γ) a B ) :
   sn Γ (Lam A a) (Fun A B).
 Proof.
-  dependent induction h; qauto l:on ctrs:Acc inv:TRed.
+  move E : (A .: Γ) h => Δ h.
+  move : Γ A E.
+  induction h; qauto l:on ctrs:Acc inv:TRed.
 Qed.
 
 (* Parallel version of lemma 3.9.3 *)
