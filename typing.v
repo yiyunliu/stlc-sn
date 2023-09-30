@@ -943,14 +943,27 @@ Proof. sfirstorder use:SemWt_Wt. Qed.
 
 #[export]Hint Resolve good_sem_subst_good_subst : core.
 
+Lemma renaming_compose {n m p} (Γ : context n) (Δ : context m) (Σ : context p)
+  ξ0 ξ1 :
+  good_renaming ξ0 Γ Δ ->
+  good_renaming ξ1 Δ Σ ->
+  good_renaming (ξ0 >> ξ1) Γ Σ.
+Proof. hauto lq:on use:renaming unfold:good_renaming. Qed.
+
 Lemma renaming_Sem {n} (Γ : context n) a A :
   SemWt Γ a A ->
   forall m (Δ : context m) ξ,
     good_renaming ξ Γ Δ ->
     SemWt Δ (ren_tm ξ a) A.
 Proof.
-  elim : A n Γ a.
-Admitted.
+  elim : A n Γ a => /=.
+  - move => A ih0 B ih1 m Γ b ih2 n Δ ξ0 hξ0 p Ξ ξ1 hξ1 c h0 h1.
+    replace (App (ren_tm ξ1 (ren_tm ξ0 b)) c) with (App (ren_tm (ξ0 >> ξ1) b) c); last by asimpl.
+    apply ih2; auto.
+    eauto using renaming_compose.
+  - move => *.
+    hauto l:on use:SN_renaming_mutual.
+Qed.
 
 Lemma good_sem_subst_renaming {n m p} (Γ : context n) (Δ : context m) (Σ : context p)
   ξ0 ξ1 :
