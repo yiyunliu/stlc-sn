@@ -423,8 +423,6 @@ Scheme SN_ind' := Induction for SN Sort Prop
    with TRedSN_ind' := Induction for TRedSN Sort Prop.
 Combined Scheme SN_mutual from SN_ind', SNe_ind', TRedSN_ind'.
 
-Check SN_mutual.
-
 Lemma SN_Wt_mutual :  forall {n} (Γ : context n),
   (forall a A, SN Γ a A -> Wt Γ a A) /\
   (forall a A, SNe Γ a A -> Wt Γ a A) /\
