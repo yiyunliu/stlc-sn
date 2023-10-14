@@ -105,18 +105,28 @@ with ReadbackNe {n} : DomainNe n -> tm n -> Prop :=
   Readback d b ->
   ReadbackNe (DN_App e d) (App a b).
 
-Fixpoint I (A : ty) (f : Domain 0) : Prop :=
+Inductive ne {n} : tm n -> Prop :=
+| ne_var i : ne (var_tm i)
+| ne_app e d : ne e -> nf d -> ne (App e d)
+with nf {n} : tm n -> Prop :=
+| nf_ne e : ne e -> nf e
+| nf_abs A a : nf (Lam A a).
+
+Fixpoint Interp {n} (A : ty) (f : Domain n) : Prop :=
   match A with
-  | I => False
+  | I => match f with
+        | D_Ne a => exists v, nf v /\ ReadbackNe a v
+        | _ => False
+        end
   | Fun A B =>
-      forall a, I A a -> exists b, I B b /\ D_Ap f a b
+      forall a, Interp A a -> exists b, Interp B b /\ D_Ap f a b
   end.
 
 Definition ρ_ok {n} (ρ : fin n -> Domain 0) (Γ : fin n -> ty) :=
-  forall i, I (Γ i) (ρ i).
+  forall i, Interp (Γ i) (ρ i).
 
 Definition SemWt {n} (Γ : fin n -> ty) a A :=
-  forall ρ, ρ_ok ρ Γ -> exists d, D_Eval ρ a d /\ I A d.
+  forall ρ, ρ_ok ρ Γ -> exists d, D_Eval ρ a d /\ Interp A d.
 
 Lemma fundamental_lemma {n} (Γ : context n) (a : tm n) (A : ty)
   (h : Wt Γ a A) : SemWt Γ a A.
