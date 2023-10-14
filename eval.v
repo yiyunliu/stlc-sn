@@ -15,6 +15,17 @@ with DomainNe (n : nat) : Type :=
 | DN_var (i : fin n) : DomainNe n
 | DN_App (d : DomainNe n) (e : Domain n) : DomainNe n.
 
+Fixpoint ren_dom {n m} (ξ : fin n -> fin m) (a : Domain n) : Domain m :=
+  match a with
+  | D_Clos A a ρ => D_Clos A a (ρ >> ren_dom ξ)
+  | D_Ne e => D_Ne (ren_domNe ξ e)
+  end
+with ren_domNe {n m} (ξ : fin n -> fin m) (e : DomainNe n) : DomainNe m :=
+  match e with
+  | DN_var i => DN_var (ξ i)
+  | DN_App e d => DN_App (ren_domNe ξ e) (ren_dom ξ d)
+  end.
+
 Arguments D_Clos {n m}.
 
 Definition Env n m := fin n -> Domain m.
@@ -79,11 +90,9 @@ Proof.
   - sfirstorder use:inv_max_zero.
 Qed.
 
-
-(* TODO: add ren_domain? *)
 Inductive Readback {n} : Domain n -> tm n -> Prop :=
 | R_Clos m (ρ : Env m n) (a : tm (S m)) d A b:
-  D_Eval (D_Ne (DN_var (@max_fin)) .: ρ) a d ->
+  D_Eval (D_Ne (DN_var max_fin) .: (ρ >> ren_dom embed)) a d ->
   @Readback (S n) d b ->
   Readback (D_Clos A a ρ : Domain n) (Lam A b : tm n)
 | R_Ne e a :
