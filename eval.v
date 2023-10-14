@@ -104,3 +104,38 @@ with ReadbackNe {n} : DomainNe n -> tm n -> Prop :=
   ReadbackNe e a ->
   Readback d b ->
   ReadbackNe (DN_App e d) (App a b).
+
+Fixpoint I (A : ty) (f : Domain 0) : Prop :=
+  match A with
+  | I => False
+  | Fun A B =>
+      forall a, I A a -> exists b, I B b /\ D_Ap f a b
+  end.
+
+Definition ρ_ok {n} (ρ : fin n -> Domain 0) (Γ : fin n -> ty) :=
+  forall i, I (Γ i) (ρ i).
+
+Definition SemWt {n} (Γ : fin n -> ty) a A :=
+  forall ρ, ρ_ok ρ Γ -> exists d, D_Eval ρ a d /\ I A d.
+
+Lemma fundamental_lemma {n} (Γ : context n) (a : tm n) (A : ty)
+  (h : Wt Γ a A) : SemWt Γ a A.
+  elim : n Γ a A / h.
+  - sfirstorder.
+  - rewrite /SemWt.
+    move => n Γ A a B h0 ih0 ρ hρ.
+    eexists.
+    split.
+    + sfirstorder.
+    + simpl.
+      move => d hd.
+      move /(_ (d .: ρ) ltac:(sauto unfold:ρ_ok)) in ih0.
+      sauto lq:on.
+  - rewrite /SemWt.
+    move => n Γ a A B b h0 ih0 h1 ih1 ρ hρ.
+    move /(_ ρ hρ) in ih0.
+    move /(_ ρ hρ) in ih1.
+    move : ih0; intros (d0 & h2 & h3).
+    move : ih1; intros (d1 & h4 & h5).
+    hauto q:on ctrs:D_Eval.
+Qed.
