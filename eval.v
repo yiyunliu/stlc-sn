@@ -112,6 +112,42 @@ with nf {n} : tm n -> Prop :=
 | nf_ne e : ne e -> nf e
 | nf_abs A a : nf (Lam A a).
 
+Definition TopSpace {n} (d : Domain n) :=
+  exists v, nf v /\ Readback d v.
+
+Definition BotSpaceNe {n} (e : DomainNe n) :=
+  exists u, ne u /\ ReadbackNe e u.
+
+Definition BotSpace {n} (d : Domain n) :=
+  match d with
+  | D_Ne e => BotSpaceNe e
+  | _ => False
+  end.
+
+Definition SemFun {n} (A : Domain n -> Prop) (B : Domain n -> Prop) (b : Domain n) :=
+  forall a, A a -> exists d, B d /\ D_Ap b a d.
+
+#[export]Hint Unfold BotSpace TopSpace BotSpaceNe SemFun : core.
+
+Lemma cand_prop1 {n} (d : Domain n) : BotSpace d -> SemFun TopSpace BotSpace d.
+Proof.
+  rewrite /SemFun.
+  move => h a ha.
+  rewrite /BotSpace /TopSpace in h ha.
+  case : d h => [// | d h].
+  case : ha => v [hv0 hv1].
+  exists (D_Ne (DN_App d a)).
+  split.
+  - rewrite /BotSpace.
+    rewrite /BotSpaceNe in h *.
+    case : h => u [hu0 hu1].
+    exists (App u v).
+    split.
+    + hauto lq:on ctrs:ne.
+    + hauto lq:on ctrs:ReadbackNe.
+  - sfirstorder.
+Qed.
+
 Fixpoint Interp {n} (A : ty) (f : Domain n) : Prop :=
   match A with
   | I => match f with
