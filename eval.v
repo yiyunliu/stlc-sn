@@ -150,10 +150,7 @@ Qed.
 
 Fixpoint Interp {n} (A : ty) (f : Domain n) : Prop :=
   match A with
-  | I => match f with
-        | D_Ne a => exists v, nf v /\ ReadbackNe a v
-        | _ => False
-        end
+  | I => BotSpace f
   | Fun A B =>
       forall a, Interp A a -> exists b, Interp B b /\ D_Ap f a b
   end.
