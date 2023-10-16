@@ -602,6 +602,7 @@ Proof.
       apply SN_anti_weakening with (A := A).
       change (Fun A B) with (Fun ((A .: Γ) var_zero) B).
       (* Need CR3 to finish off the proof *)
+      apply ext_SN.
       hauto l:on ctrs:SNe, Wt use:ext_SN db:core.
     + move => b h0 h1.
       simpl.
