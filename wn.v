@@ -59,13 +59,6 @@ Proof.
   - sfirstorder.
 Qed.
 
-
-(* Fixpoint Interp (b : tm 0) (A : ty) : Prop := *)
-(*   match A with *)
-(*   | I => False *)
-(*   | Fun A B => forall a, Interp a A -> Interp (App b a) B *)
-(*   end. *)
-
 Definition Prod (PA : tm 0 -> Prop) (PB : tm 0 -> Prop) (b : tm 0) :=
   forall a, PA a -> PB (App b a).
 
@@ -73,7 +66,7 @@ Inductive Interp_rel : ty -> (tm 0 -> Prop) -> Prop :=
 | Interp_I : Interp_rel I (fun _ => False)
 | Interp_Fun A PA B (PB : tm 0 -> Prop) :
   Interp_rel A PA ->
-  Interp_rel B PB ->
+  (forall a, PA a -> Interp_rel B PB) ->
   Interp_rel (Fun A B) (Prod PA PB).
 
 Lemma Interp_rel_back_preservation A : forall PA (a b : tm 0) (h : Red a b),
@@ -126,56 +119,35 @@ Lemma Interp_Fun' A PA B (PB PF : tm 0 -> Prop) :
   Interp_rel (Fun A B) PF.
 Proof. hauto lq:on ctrs:Interp_rel. Qed.
 
-(* Lemma Interp_exists A PA : Interp_rel A PA -> Interp_rel A (fun a => forall K, Interp_rel A K -> K a). *)
-(* Proof. *)
-(*   elim : A PA. *)
-(*   - move => A ihA B ihB PA hPA. *)
-(*     inversion hPA; subst. *)
-(*     move /(_ PA0 ltac:(assumption)) in ihA. *)
-(*     apply Interp_Fun' with (PA := (fun a => forall K, Interp_rel A K -> K a)) (PB := (fun a => forall K, Interp_rel B K -> K a)); auto. *)
-(*     + fext. *)
-(*       move => f. *)
-(*       apply propositional_extensionality. *)
-(*       split. *)
-(*       hauto lq:on ctrs:Interp_rel. *)
-(*       rewrite /Prod. *)
-(*       move => hb K IK. *)
-(*       inversion IK; subst. *)
-(*       rewrite /Prod. *)
-(*       move => a ha. *)
-(*       apply hb; eauto. *)
-
-(*       move => [PAB [h1 h2]]. *)
-(*       * rewrite /Prod. *)
-(*         move => a0 [PA [h3 h4]]. *)
-(*         inversion h1; subst. *)
-(*         specialize (H5 ) *)
-
-(*         move /(_ a0 ha0) in H3. *)
-(*         move /(_ PB ltac:(assumption)) in ihB. *)
-(*         exists (fun a : tm 0 => exists K : tm 0 -> Prop, Interp_rel B K /\ K a). *)
-(*         split; auto. *)
-(*         exists K. *)
-
-
-(*         split; auto. *)
-
-(*     + move => a ha. *)
-(*       sfirstorder. *)
-(*   - move => PA h. *)
-(*     inversion h; subst. *)
-(*     suff h1 : (fun=> False) = (fun a : tm 0 => exists K : tm 0 -> Prop, Interp_rel I K /\ K a) by congruence. *)
-(*     fext. *)
-(*     move => a. *)
-(*     apply propositional_extensionality. *)
-(*     hauto lq:on inv:Interp_rel. *)
-
+Lemma Interp_deterministic A PA PB : Interp_rel A PA -> Interp_rel A PB -> PA = PB.
+Proof.
+  elim : A PA PB.
+  - move => A hA B hB PA PB hPA hPB.
+    inversion hPA; subst.
+    inversion hPB; subst.
+    rewrite /Prod.
+    fext.
+    move => a b.
+    apply propositional_extensionality.
+    split.
+    + move => hA0 hb.
+      have ? : PA = PA0 by sfirstorder.
+      subst.
+      have ? : PB1 = PB0 by sfirstorder.
+      subst.
+      sfirstorder.
+    + move => hA0 hb.
+      have ? : PA = PA0 by sfirstorder.
+      have ? : PB1 = PB0 by sfirstorder.
+      sfirstorder.
+  - hauto lq:on inv:Interp_rel.
+Qed.
 
 Lemma fundamental_lemma' {n} (Γ : context n) a A (h : Wt Γ a A) :
   SemWt' Γ a A.
 Proof.
     elim : n Γ a A /h; rewrite /SemWt'.
-    - move => n Γ i.
+    - sfirstorder.
     - move => n Γ A a B h0 ih0 γ hγ.
       (* The well-formedness condition would have given me the admitted fact *)
       have [PA hA] : exists PA, Interp_rel A PA by admit.
@@ -184,9 +156,15 @@ Proof.
       + constructor; auto.
         move => a0 ha0.
         case /(_ (a0 .: γ) ltac:(eauto)) : ih0 => PB [h1 h2].
-        (* Would be able to show this as a lemma? *)
-        (* Need h1 as a premise *)
-        admit.
+        suff : (fun a1 : tm 0 => exists K : tm 0 -> Prop, Interp_rel B K /\ K a1) =
+                 PB by congruence.
+        fext.
+        move => b.
+        apply propositional_extensionality.
+        split; last by sfirstorder.
+        move => [K [h3 h4]].
+        suff : K = PB by congruence.
+        sfirstorder use:Interp_deterministic.
       + rewrite /Prod.
         move => b hb.
         move /(_ (b .: γ) ltac:(eauto)) in ih0.
