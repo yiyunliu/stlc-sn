@@ -73,7 +73,7 @@ Inductive Interp_rel : ty -> (tm 0 -> Prop) -> Prop :=
 | Interp_I : Interp_rel I (fun _ => False)
 | Interp_Fun A PA B (PB : tm 0 -> Prop) :
   Interp_rel A PA ->
-  (forall a, PA a -> Interp_rel B PB) ->
+  Interp_rel B PB ->
   Interp_rel (Fun A B) (Prod PA PB).
 
 Lemma Interp_rel_back_preservation A : forall PA (a b : tm 0) (h : Red a b),
@@ -113,14 +113,69 @@ Proof. hauto q:on inv:option unfold:γ_ok'. Qed.
 
 #[export]Hint Resolve γ_ok_cons' Interp_back_preservation' : core.
 
+(* InterpUniv_RelProd_extdeter *)
+
 Definition SemWt' {n} (Γ : context n) a A : Prop :=
   forall γ, γ_ok' γ Γ -> exists PA, Interp_rel A PA /\ PA (subst_tm γ a).
+
+
+Lemma Interp_Fun' A PA B (PB PF : tm 0 -> Prop) :
+  Interp_rel A PA ->
+  PF = (Prod PA PB) ->
+  Interp_rel B PB ->
+  Interp_rel (Fun A B) PF.
+Proof. hauto lq:on ctrs:Interp_rel. Qed.
+
+(* Lemma Interp_exists A PA : Interp_rel A PA -> Interp_rel A (fun a => forall K, Interp_rel A K -> K a). *)
+(* Proof. *)
+(*   elim : A PA. *)
+(*   - move => A ihA B ihB PA hPA. *)
+(*     inversion hPA; subst. *)
+(*     move /(_ PA0 ltac:(assumption)) in ihA. *)
+(*     apply Interp_Fun' with (PA := (fun a => forall K, Interp_rel A K -> K a)) (PB := (fun a => forall K, Interp_rel B K -> K a)); auto. *)
+(*     + fext. *)
+(*       move => f. *)
+(*       apply propositional_extensionality. *)
+(*       split. *)
+(*       hauto lq:on ctrs:Interp_rel. *)
+(*       rewrite /Prod. *)
+(*       move => hb K IK. *)
+(*       inversion IK; subst. *)
+(*       rewrite /Prod. *)
+(*       move => a ha. *)
+(*       apply hb; eauto. *)
+
+(*       move => [PAB [h1 h2]]. *)
+(*       * rewrite /Prod. *)
+(*         move => a0 [PA [h3 h4]]. *)
+(*         inversion h1; subst. *)
+(*         specialize (H5 ) *)
+
+(*         move /(_ a0 ha0) in H3. *)
+(*         move /(_ PB ltac:(assumption)) in ihB. *)
+(*         exists (fun a : tm 0 => exists K : tm 0 -> Prop, Interp_rel B K /\ K a). *)
+(*         split; auto. *)
+(*         exists K. *)
+
+
+(*         split; auto. *)
+
+(*     + move => a ha. *)
+(*       sfirstorder. *)
+(*   - move => PA h. *)
+(*     inversion h; subst. *)
+(*     suff h1 : (fun=> False) = (fun a : tm 0 => exists K : tm 0 -> Prop, Interp_rel I K /\ K a) by congruence. *)
+(*     fext. *)
+(*     move => a. *)
+(*     apply propositional_extensionality. *)
+(*     hauto lq:on inv:Interp_rel. *)
+
 
 Lemma fundamental_lemma' {n} (Γ : context n) a A (h : Wt Γ a A) :
   SemWt' Γ a A.
 Proof.
     elim : n Γ a A /h; rewrite /SemWt'.
-    - sfirstorder.
+    - move => n Γ i.
     - move => n Γ A a B h0 ih0 γ hγ.
       (* The well-formedness condition would have given me the admitted fact *)
       have [PA hA] : exists PA, Interp_rel A PA by admit.
