@@ -73,7 +73,7 @@ Inductive Interp_rel : ty -> (tm 0 -> Prop) -> Prop :=
 | Interp_I : Interp_rel I (fun _ => False)
 | Interp_Fun A PA B (PB : tm 0 -> Prop) :
   Interp_rel A PA ->
-  Interp_rel B PB ->
+  (forall a, PA a -> Interp_rel B PB) ->
   Interp_rel (Fun A B) (Prod PA PB).
 
 Lemma Interp_rel_back_preservation A : forall PA (a b : tm 0) (h : Red a b),
@@ -127,6 +127,10 @@ Proof.
       exists (Prod PA (fun a => exists K, Interp_rel B K /\ K a)).
       split.
       + constructor; auto.
+        move => a0 ha0.
+        case /(_ (a0 .: γ) ltac:(eauto)) : ih0 => PB [h1 h2].
+        (* Would be able to show this as a lemma? *)
+        (* Need h1 as a premise *)
         admit.
       + rewrite /Prod.
         move => b hb.
