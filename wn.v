@@ -1,10 +1,6 @@
-From Hammer Require Import Tactics Hammer.
+From Hammer Require Import Tactics.
 From WR Require Import typing.
-From Coq Require Import ssreflect ssrfun ssrbool Relations.Relation_Operators Logic.PropExtensionality.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
+From Coq Require Import ssreflect.
 
 Fixpoint Interp (b : tm 0) (A : ty) : Prop :=
   match A with

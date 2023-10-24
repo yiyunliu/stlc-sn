@@ -1,14 +1,6 @@
-From Coq Require Import ssreflect ssrfun ssrbool.
+From Coq Require Import ssreflect.
 From Hammer Require Import Tactics.
-From Coq Require Import
-  micromega.Lia Relation_Operators Operators_Properties.
 From WR Require Export syntax.
-From Coq Require Import Relations.Relation_Operators.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
-
 
 Definition context n := fin n -> ty.
 
