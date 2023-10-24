@@ -4,6 +4,11 @@ From WR Require Export syntax.
 
 Definition context n := fin n -> ty.
 
+Section A.
+  Parameter n : nat.
+  Check scons : ty -> context n -> context (S n).
+End A.
+
 (* Statics *)
 Inductive Wt {n : nat} (Γ : context n) : tm n -> ty -> Prop :=
 | T_Var i :
