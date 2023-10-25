@@ -1,5 +1,3 @@
-From Coq Require Import ssreflect.
-From Hammer Require Import Tactics.
 From WR Require Export syntax.
 
 Definition context n := fin n -> ty.
@@ -40,7 +38,19 @@ Definition good_subst {n m}
   (Δ : context m) :=
   forall i, Wt Δ (ξ i) (Γ i).
 
+Lemma good_renaming_ext {n m}
+  (ξ : fin n -> fin m)
+  Γ Δ
+  (h : good_renaming ξ Γ Δ)
+  (A : ty) :
+  good_renaming (upRen_tm_tm ξ) (A .: Γ) (A .: Δ).
+Proof.
+  unfold good_renaming in *.
+  destruct i as [i|]; simpl; auto.
+Qed.
+
 #[export]Hint Unfold good_renaming good_subst : core.
+#[export]Hint Resolve good_renaming_ext : core.
 
 Lemma renaming {n} a A
   (Γ : context n)
@@ -49,7 +59,12 @@ Lemma renaming {n} a A
     good_renaming ξ Γ Δ ->
     Wt Δ (ren_tm ξ a) A.
 Proof.
-  elim : n Γ a A /h; hauto q:on unfold:good_renaming ctrs:Wt inv:option.
+  induction h.
+  - unfold good_renaming.
+    intros m ξ Δ h.
+    rewrite h; simpl; apply T_Var.
+  - intros; simpl; auto.
+  - intros; simpl; eauto.
 Qed.
 
 Lemma weakening {n} a A B
@@ -67,7 +82,9 @@ Lemma good_subst_ext {n m}
   (A : ty) :
   good_subst (up_tm_tm ξ) (A .: Γ) (A .: Δ).
 Proof.
-  hauto l:on use:weakening unfold:good_subst inv:option.
+  unfold good_subst in *.
+  destruct i as [i|]; simpl; eauto using weakening.
+  apply T_Var.
 Qed.
 
 #[export]Hint Resolve good_subst_ext weakening : core.
@@ -79,13 +96,17 @@ Lemma morphing {n} a A
     good_subst ξ Γ Δ ->
     Wt Δ (subst_tm ξ a) A.
 Proof.
-  elim : n Γ a A /h; qauto l:on db:core ctrs:Wt.
+  induction h; simpl; eauto.
 Qed.
 
 Lemma good_subst_one {n} {Γ : context n} {a A}
   (h : Wt Γ a A) :
   good_subst  (a..) (A .: Γ) Γ.
-Proof. hauto unfold:good_subst l:on inv:option. Qed.
+Proof.
+  unfold good_subst.
+  destruct i as [i|]; simpl; eauto.
+  apply T_Var.
+Qed.
 
 #[export]Hint Resolve good_subst_one : core.
 
