@@ -658,7 +658,7 @@ Lemma renaming_Sem {n} (Γ : context n) a A :
 Proof.
   elim : A n Γ a => /=.
   - move => A ih0 B ih1 m Γ b ih2 n Δ ξ0 hξ0 p Ξ ξ1 hξ1 c h0 h1.
-    replace (App (ren_tm ξ1 (ren_tm ξ0 b)) c) with (App (ren_tm (ξ0 >> ξ1) b) c); last by asimpl.
+    asimpl.
     apply ih2; auto.
     eauto using renaming_compose.
   - move => *.
