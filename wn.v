@@ -13,7 +13,7 @@ with nf {n} (a : tm n) :=
   match a with
   | var_tm _ => true
   | App a b => ne a && nf b
-  | Lam _ _ => true
+  | Lam A a => nf a
   end.
 
 Inductive Red {n} : tm n -> tm n -> Prop :=
@@ -65,8 +65,7 @@ Lemma ne_nf_renaming n (a : tm n) :
   forall m (ξ : fin n -> fin m),
     (ne a -> ne (ren_tm ξ a)) /\ (nf a -> nf (ren_tm ξ a)).
 Proof.
-  elim : n / a; auto.
-  hauto b:on.
+  elim : n / a; solve [auto; hauto b:on].
 Qed.
 
 Lemma Interp_renaming n A (a : tm n) (h : Interp n a A) :
