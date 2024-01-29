@@ -146,39 +146,6 @@ Proof.
   - hauto q:on ctrs:rtc.
 Qed.
 
-Definition γ_ok {n m} (γ : fin n -> tm m) (Γ : fin n -> ty) :=
-  forall i, Interp m (γ i) (Γ i).
-
-Lemma γ_ok_cons n m {γ : fin n -> tm m} Γ a A :
-  Interp m a A ->
-  γ_ok γ Γ ->
-  γ_ok (a .: γ) (A .: Γ).
-Proof. hauto q:on inv:option unfold:γ_ok. Qed.
-
-#[export]Hint Resolve γ_ok_cons Interp_back_preservation : semwt.
-
-Definition SemWt {n} (Γ : context n) a A : Prop :=
-  forall m (γ : fin n -> tm m), γ_ok γ Γ -> Interp m (subst_tm γ a) A.
-
-Lemma fundamental_lemma {n} (Γ : context n) a A (h : Wt Γ a A) :
-  SemWt Γ a A.
-Proof.
-  elim : n Γ a A /h; rewrite /SemWt.
-  - sfirstorder.
-  - move => n Γ A a B h ih m γ hγ /= p ξ b hb.
-    apply : Interp_back_preservation; first by apply S_β.
-    asimpl.
-    apply ih.
-    apply γ_ok_cons; auto.
-    rewrite /γ_ok => i.
-    renamify.
-    by apply Interp_renaming.
-  - move => /= n Γ a A B b _ iha _ ihb m γ hγ.
-    replace (subst_tm γ a) with (ren_tm id (subst_tm γ a)).
-    + by eauto.
-    + by asimpl.
-Qed.
-
 Lemma ext_wn n (a : tm n) i :
     wn (App a (var_tm i)) ->
     wn a.
@@ -254,6 +221,39 @@ Proof.
     split.
     + sfirstorder use:ne_nf.
     + sfirstorder.
+Qed.
+
+Definition γ_ok {n m} (γ : fin n -> tm m) (Γ : fin n -> ty) :=
+  forall i, Interp m (γ i) (Γ i).
+
+Lemma γ_ok_cons n m {γ : fin n -> tm m} Γ a A :
+  Interp m a A ->
+  γ_ok γ Γ ->
+  γ_ok (a .: γ) (A .: Γ).
+Proof. hauto q:on inv:option unfold:γ_ok. Qed.
+
+#[export]Hint Resolve γ_ok_cons Interp_back_preservation : semwt.
+
+Definition SemWt {n} (Γ : context n) a A : Prop :=
+  forall m (γ : fin n -> tm m), γ_ok γ Γ -> Interp m (subst_tm γ a) A.
+
+Lemma fundamental_lemma {n} (Γ : context n) a A (h : Wt Γ a A) :
+  SemWt Γ a A.
+Proof.
+  elim : n Γ a A /h; rewrite /SemWt.
+  - sfirstorder.
+  - move => n Γ A a B h ih m γ hγ /= p ξ b hb.
+    apply : Interp_back_preservation; first by apply S_β.
+    asimpl.
+    apply ih.
+    apply γ_ok_cons; auto.
+    rewrite /γ_ok => i.
+    renamify.
+    by apply Interp_renaming.
+  - move => /= n Γ a A B b _ iha _ ihb m γ hγ.
+    replace (subst_tm γ a) with (ren_tm id (subst_tm γ a)).
+    + by eauto.
+    + by asimpl.
 Qed.
 
 Lemma nf_no_step n (a : tm n) : (nf a || ne a) -> relations.nf Red a.
