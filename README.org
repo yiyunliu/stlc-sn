@@ -28,7 +28,19 @@ in the text:
 - A remark says Lemma 3.10 can be rephrased in terms of simultaneous
   substitution, though that seems impossible because the conclusion
   requires closing over the term with a lambda.
+* Weak normalization of STLC
+In many use cases, it suffices to know that there exists a normalizing
+reduction sequence. The file [[file:wn.v][wn.v]] contains a proof of this
+property. Weak normalization still requires a Kripke logical
+relation but no longer requires dealing with the Accessibility
+relation. I also built the semantic model in an untyped fashion. You
+can recover eta rules by turning it into a PER model. I still believe
+untyped models, if possible, is superior, since typed reduction turns
+out to be painful to reason about.
 
+I also favored fixpoints over inductively defined relations whenever
+applicable. Reduction is always easier than proof search with the
+constructors.
 
 * Lines of code
 The file [[file:typing.v][typing.v]] containing the judgments and normalization proofs
