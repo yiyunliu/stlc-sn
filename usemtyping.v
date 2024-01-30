@@ -122,15 +122,6 @@ Proof.
     hauto lq:on ctrs:rtc, eq.
 Qed.
 
-(* Lemma Interp_renaming A (a : tm) (h : Interp a A) : *)
-(*   forall (ξ : nat -> nat), *)
-(*     Interp (ren_tm ξ a) A. *)
-(* Proof. *)
-(*   elim : A a h. *)
-(*   - move => /= A ihA B ihB a ha ξ b hb. *)
-    (* Can't prove renaming if the fun case is not generalized to future contexts *)
-    (* Since ξ is not necessarily injective, given some b as an argument, we can't always find some b' such that ren_tm ξ b' = b *)
-
 Lemma Interp_back_clos A (a b : tm) (h : Red a b) : Interp b A -> Interp a A.
 Proof.
   elim : A a b h.
@@ -215,8 +206,49 @@ Lemma γ_ok_cons (γ : nat -> tm) Γ a A :
   γ_ok (a .: γ) (A :: Γ).
 Proof.
   rewrite /γ_ok => h0 h1.
-  case.
-  move => h0 h1.
-hauto q:on inv:option unfold:γ_ok. Qed.
+  case => [? | n /= /Arith_prebase.lt_S_n ?];eauto.
+Qed.
 
-#[export]Hint Resolve γ_ok_cons Interp_back_preservation : semwt.
+#[export]Hint Resolve γ_ok_cons Interp_back_clos : semwt.
+
+Definition SemWt (Γ : context) a A : Prop :=
+  forall γ, γ_ok γ Γ -> Interp (subst_tm γ a) A.
+
+Lemma fundamental_lemma (Γ : context) a A (h : Wt Γ a A) :
+  SemWt Γ a A.
+Proof.
+  elim : Γ a A / h.
+  - firstorder.
+  - rewrite /SemWt /= => *.
+    apply : Interp_back_clos; first by apply S_β.
+    asimpl. auto using γ_ok_cons.
+  - firstorder.
+Qed.
+
+Lemma nf_no_step (a : tm) : (nf a || ne a) -> relations.nf Red a.
+Proof.
+  rewrite /relations.nf.
+  rewrite /relations.red.
+  elim : a.
+  - hauto lq:on inv:Red.
+  - hauto inv:Red qb:on.
+  - hauto inv:Red qb:on.
+Qed.
+
+Lemma wn_no_step (a : tm) : wn a -> relations.wn Red a.
+Proof.
+  hauto lqb:on use:nf_no_step unfold:relations.wn.
+Qed.
+
+Lemma stlc_wn (Γ : context) a A :
+  Wt Γ a A -> relations.wn Red a.
+Proof.
+  move /fundamental_lemma.
+  rewrite /SemWt.
+  move /(_ var_tm).
+  have : γ_ok var_tm Γ.
+  rewrite /γ_ok.
+  hauto lq:on ctrs:rtc use:adequacy.
+  asimpl.
+  sfirstorder use:adequacy, wn_no_step.
+Qed.
