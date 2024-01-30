@@ -16,7 +16,11 @@ syntax.v : syntax.sig
 	as2-exe -i syntax.sig -p Coq > syntax.v
 	perl -i -pe 's/^(Hint|Instance)/#[export]$1/' syntax.v
 
-_CoqProject : syntax.v *.v
+usyntax.v : syntax.sig
+	as2-exe -i syntax.sig -p UCoq > usyntax.v
+	perl -i -pe 's/^(Hint|Instance)/#[export]$1/' usyntax.v
+
+_CoqProject : usyntax.v syntax.v *.v
 	{ echo "-R . $(LIBNAME) " ; ls *.v ; } > _CoqProject
 
 CoqSrc.mk: _CoqProject
