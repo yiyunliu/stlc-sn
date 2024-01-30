@@ -30,21 +30,16 @@ in the text:
   requires closing over the term with a lambda.
 * Weak normalization of STLC
 In many use cases, it suffices to know that there exists a normalizing
-reduction sequence. The file [[file:wn.v][wn.v]] contains a proof of this
-property. Weak normalization still requires a Kripke logical
+reduction sequence.
+This repository contains two closely related but separated proofs for
+weak normalization of well-typed open terms.
+
+The file [[file:wn.v][wn.v]] contains a proof of this
+property for a scoped syntax representation. As a result of the scoped
+syntax, we still need a Kripke logical
 relation but no longer requires dealing with the Accessibility
-relation. I also built the semantic model in an untyped fashion. You
-can recover eta rules by turning it into a PER model. I still believe
-untyped models, if possible, is superior, since typed reduction turns
-out to be painful to reason about.
+relation.
 
-I also favored fixpoints over inductively defined relations whenever
-applicable. Reduction is always easier than proof search with the
-constructors.
-
-* Lines of code
-The file [[file:typing.v][typing.v]] containing the judgments and normalization proofs
-has 1028 lines in total, whereas the Coq development from the paper
-requries only 446 lines of code. It is unclear whether that's due to
-my lack of specialized automation tactics or the use of type-directed
-judgments.
+The file [[file:usemtyping.v][usemtyping.v]] contains the same proof for an unscoped
+representation. It turns out that you don't actually need to use a
+Kripke logical relation to prove normalization.
