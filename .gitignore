@@ -49,6 +49,6 @@ CoqSrc.mk
 CoqSrc.mk.conf
 _CoqProject
 syntax.v
-
+usyntax.v
 
 *~
